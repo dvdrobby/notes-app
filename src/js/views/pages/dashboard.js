@@ -1,4 +1,5 @@
 import NotesApi from '../../networks/notes-api';
+import AuthApi from '../../networks/auth-api';
 import { createNoteListEmptyTemplate, noteItemTemplate } from '../templates/template-creator';
 
 const Dashboard = {
@@ -21,6 +22,7 @@ const Dashboard = {
   async _initialData() {
     // Get all notes data from API
     const notes = await NotesApi.getAll();
+    const userInfo = await AuthApi.getUserInfo();
 
     // Get notesList element
     const notesListEl = document.getElementById('notesList');
@@ -30,22 +32,34 @@ const Dashboard = {
       return this._populateNotesListEmpty(notesListEl);
     }
 
-    this._populateNotesList(notesListEl, notes);
+    this._populateNotesList(notesListEl, notes, userInfo.data);
   },
 
-  _populateNotesList(containerEl, notes) {
+  _populateNotesList(containerEl, notes, userInfo) {
     containerEl.innerHTML = '';
 
+    const note = notes.data.map(obj =>{
+      return {  id: obj.id, 
+                title: obj.title,
+                body: obj.body, 
+                createdAt: new Date(obj.createdAt),
+                owner: obj.owner}
+    });
+    const sortedNotes = note.sort((a,b)=>{
+      return Number(b.createdAt) - Number(a.createdAt);
+    });
+    
     // Populate notes list with note item template
-    notes.data.forEach((note) => {
+    sortedNotes.forEach((note) => {
       containerEl.innerHTML += `
         <div class="col-12">
-          ${noteItemTemplate(note)}
+          ${noteItemTemplate(note, userInfo)}
         </div>
       `;
     });
 
     // Add event listener to delete button for each note item
+    
     containerEl.querySelectorAll(`#deleteNoteButton`).forEach((el) => {
       el.addEventListener('click', async (event) => {
         const noteId = event.target.dataset.id;
